@@ -14,14 +14,49 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--annots",type=str,default="openimages_common_214_ram_annots.txt")
-    parser.add_argument("--sample_num",type=int,default=10)
+    parser.add_argument("--sample_num",type=int,default=3)
     parser.add_argument("--result_path",type=str,default="result.txt")
     parser.add_argument("--prompt",type=str,default="Is there a {} in the image?")
     parser.add_argument("--sample_method",type=str,default="random")
+    parser.add_argument("--limit",type=int,default=10)
 
     args = parser.parse_args()
 
     return args
+
+
+def cut_input(input_file:str,output_file:str,limit:int)->None:
+    samples = defaultdict(list)
+
+     # 打开并读取输入文件
+    with open(input_file, 'r') as f:
+        for line in tqdm(f):
+            # 分割每一行以获取类别和标签
+            parts = line.strip().split(',')
+            if len(parts) == 1:
+                # print(f"[INFO] no label :{parts}")
+                continue
+            # category = parts[1]
+            labels = parts[1:]
+            category = random.choice(labels)
+
+            # 将样本添加到对应的类别列表中
+            samples[category].append(copy.deepcopy(line))
+            # print(f"category is now {category}, line is now {line}")
+
+    # 打开输出文件以写入结果
+    with open(output_file, 'w') as f:
+        for category, labels_list in samples.items():
+            # 如果一个类别的样本数量超过限制，则只保留前10个
+            if len(labels_list) >= limit:
+                labels_list = labels_list[:limit]
+            else:
+                print(f"[Error] {category} only with num: {len(labels_list)}")
+
+            # 将结果写入输出文件
+            for labels in labels_list:
+                f.write(f'{labels}')
+
 
 
 def preprocess(annots:str)->None:
@@ -62,12 +97,12 @@ def POPE(template:str, method:str, sample_num:int) -> list():
     for img_path,labels in tqdm(lines):
         history_object_list = copy.deepcopy(labels)
 
-        # Generate positive sample
+        # # Generate positive sample
         ground_truth = [create_question(img_path,label,template,'yes') for label in labels]
         result.extend(ground_truth)
 
-        # Negative sampling (random)
-        for _ in range(len(ground_truth)):
+        for _ in range(sample_num):
+            # Negative sampling (random)
             if method == "random":
                 selected_object = random.choice(all_label_list)
                 while selected_object in history_object_list:
@@ -115,7 +150,8 @@ def finishprocess(result:list, result_path:str)->None:
 
 def main():
     config = parse_args()
-    preprocess(config.annots)
+    cut_input(config.annots,"tem.txt",10)
+    preprocess("tem.txt")
     result = POPE(config.prompt,config.sample_method,config.sample_num)
     finishprocess(result,config.result_path)
 
