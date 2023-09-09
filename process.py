@@ -14,11 +14,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--annots",type=str,default="openimages_common_214_ram_annots.txt")
-    parser.add_argument("--sample_num",type=int,default=3)
     parser.add_argument("--result_path",type=str,default="result.txt")
-    parser.add_argument("--prompt",type=str,default="Is there a {} in the image?")
+    parser.add_argument("--prompt",type=str,default="Is there a {} in this image? Please answer yes or no.")
     parser.add_argument("--sample_method",type=str,default="random")
-    parser.add_argument("--limit",type=int,default=10)
+    parser.add_argument("--limit",type=int,default=18)
 
     args = parser.parse_args()
 
@@ -92,16 +91,17 @@ def create_question(img:str,label:str,template:str,expected_answer:str):
 
 
 
-def POPE(template:str, method:str, sample_num:int) -> list():
+def POPE(template:str, method:str) -> list():
     result = []
     for img_path,labels in tqdm(lines):
         history_object_list = copy.deepcopy(labels)
 
-        # # Generate positive sample
+        # Generate positive sample
         ground_truth = [create_question(img_path,label,template,'yes') for label in labels]
         result.extend(ground_truth)
 
-        for _ in range(sample_num):
+        # Ensure negative sample num == positive sample num
+        for _ in range(len(ground_truth)):
             # Negative sampling (random)
             if method == "random":
                 selected_object = random.choice(all_label_list)
@@ -138,6 +138,8 @@ def POPE(template:str, method:str, sample_num:int) -> list():
                     result.append(create_question(img_path,selected_object,template,'no'))
                     history_object_list.append(selected_object)
 
+        assert len(history_object_list) == 2*len(labels)
+
     return result
 
 
@@ -150,9 +152,9 @@ def finishprocess(result:list, result_path:str)->None:
 
 def main():
     config = parse_args()
-    cut_input(config.annots,"tem.txt",10)
+    cut_input(config.annots,"tem.txt",config.limit)
     preprocess("tem.txt")
-    result = POPE(config.prompt,config.sample_method,config.sample_num)
+    result = POPE(config.prompt,config.sample_method)
     finishprocess(result,config.result_path)
 
 
