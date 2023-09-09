@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument("--result_path",type=str,default="result.txt")
     parser.add_argument("--prompt",type=str,default="Is there a {} in this image? Please answer yes or no.")
     parser.add_argument("--sample_method",type=str,default="random")
-    parser.add_argument("--limit",type=int,default=18)
+    parser.add_argument("--limit",type=int,default=10)
 
     args = parser.parse_args()
 
@@ -27,32 +27,22 @@ def parse_args():
 def cut_input(input_file:str,output_file:str,limit:int)->None:
     samples = defaultdict(list)
 
-     # 打开并读取输入文件
     with open(input_file, 'r') as f:
         for line in tqdm(f):
-            # 分割每一行以获取类别和标签
             parts = line.strip().split(',')
             if len(parts) == 1:
-                # print(f"[INFO] no label :{parts}")
                 continue
-            # category = parts[1]
+
             labels = parts[1:]
             category = random.choice(labels)
 
-            # 将样本添加到对应的类别列表中
             samples[category].append(copy.deepcopy(line))
-            # print(f"category is now {category}, line is now {line}")
 
-    # 打开输出文件以写入结果
     with open(output_file, 'w') as f:
         for category, labels_list in samples.items():
-            # 如果一个类别的样本数量超过限制，则只保留前10个
             if len(labels_list) >= limit:
                 labels_list = labels_list[:limit]
-            else:
-                print(f"[Error] {category} only with num: {len(labels_list)}")
 
-            # 将结果写入输出文件
             for labels in labels_list:
                 f.write(f'{labels}')
 
@@ -75,6 +65,9 @@ def preprocess(annots:str)->None:
 
     all_label_list = list(label_count.keys())
     all_label_list.sort(key=lambda x: label_count[x], reverse=True)
+
+    print(f"[INFO] least type:{all_label_list[-1]}, number: {label_count[all_label_list[-1]]}")
+    print(f"[INFO] max type:{all_label_list[0]}, number:{label_count[all_label_list[0]]}")
 
     # Sort the co_occurrence dict
     for key, value in co_occurrence.items():
