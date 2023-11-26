@@ -111,7 +111,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(
       description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument(
-      'image_list',
+      '--image_list',
       type=str,
       default=None,
       help=('Filename that contains the split + image IDs of the images to '
